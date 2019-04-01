@@ -410,7 +410,12 @@ namespace blaskernels {
     auto sched = before_leaf_sched.intersect_domain(leaf.get_domain());
     isl::map _readFromC = findAccess(array_infos, i, j, sched).first;
     isl::map _A = findAccess(array_infos, i, k, sched).first;
-    isl::map _B = findAccess(array_infos, k, j, sched).first;
+    isl::map _B;
+    if (isTranspose == true) {
+      _B = findAccess(array_infos, j, k, sched).first;
+    } else {
+      _B = findAccess(array_infos, k, j, sched).first;
+    }
     ReadFromC = getAccessName(_readFromC);
     A = getAccessName(_A);
     B = getAccessName(_B);

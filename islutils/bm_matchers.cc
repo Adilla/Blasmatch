@@ -380,9 +380,10 @@ namespace blasmatchers {
 	     isl::union_map writes) {
   
     std::vector<blaskernels::BlasKernels*> k;
-    if (findGemm(ctx, scop, reads, writes).first == true) {
-      k.push_back(findGemm(ctx, scop, reads, writes).second);
-    }
+    // if (findGemm(ctx, scop, reads, writes).first == true) {
+    //   k.push_back(findGemm(ctx, scop, reads, writes).second);
+    // }
+
     if (findTransposeGemm(ctx, scop, reads, writes).first == true) {
       k.push_back(findTransposeGemm(ctx, scop, reads, writes).second);
     }
