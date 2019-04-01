@@ -530,7 +530,7 @@ namespace blaskernels {
     ldc = conversion::to_string(getLeadingDimension(ReadFromC, array_infos));
 
     std::string variant = "";
-    if (batch == -1) {
+    if (batch != -1) {
       variant = "gemmBatched";
     } else {
       variant = "gemm";
@@ -550,7 +550,7 @@ namespace blaskernels {
     fCall += beta + ", ";
     fCall += C + ", ";
     fCall += ldc;
-    if (batch == -1) 
+    if (batch != -1) 
       fCall += conversion::to_string(getLeadingDimension(ReadFromC, array_infos));
     fCall += ");\n";
     
