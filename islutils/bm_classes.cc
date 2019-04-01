@@ -414,7 +414,7 @@ namespace blaskernels {
     ReadFromC = getAccessName(_readFromC);
     A = getAccessName(_A);
     B = getAccessName(_B);
-   if (isTranspose == true) {
+    if (isTranspose == true) {
       transb = "CUBLAS_OP_T";
     }
 
@@ -569,7 +569,7 @@ namespace blaskernels {
   /* Other functions */
 
   std::string codeGenGPU(isl::ast_build astBuild, isl::ast_node node,
-				pet_stmt *stmt, void *user) {
+			 pet_stmt *stmt, void *user) {
 
     auto t = static_cast<BlasKernels *>(user);
 

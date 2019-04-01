@@ -26,11 +26,11 @@ namespace blaskernelmatchers {
 
 
 
- bool findGemmTree(isl::schedule_node root, isl::schedule_node *node);
- bool findBatchedGemmTree(isl::schedule_node root, isl::schedule_node *node);
- bool findTransposeTree(isl::schedule_node root, isl::schedule_node *node);
- bool findAxpyTree(isl::schedule_node root, isl::schedule_node *node);
- bool findDotProductTree(isl::schedule_node root, isl::schedule_node *node);
+  bool findGemmTree(isl::schedule_node root, isl::schedule_node *node);
+  bool findBatchedGemmTree(isl::schedule_node root, isl::schedule_node *node);
+  bool findTransposeTree(isl::schedule_node root, isl::schedule_node *node);
+  bool findAxpyTree(isl::schedule_node root, isl::schedule_node *node);
+  bool findDotProductTree(isl::schedule_node root, isl::schedule_node *node);
 
 } // namespace blaskernelmatchers
 #endif
