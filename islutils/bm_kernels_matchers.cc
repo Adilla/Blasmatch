@@ -21,7 +21,7 @@ namespace blaskernelmatchers {
     return ScheduleNodeMatcher::isMatching(matcher, root);
   }
 
-  bool findNDPermutableBand(isl::schedule_node root, isl::schedule_node *node, int nbDim) {
+  bool findNDPermutableBand(isl::schedule_node root, isl::schedule_node *node, unsigned int nbDim) {
     // For the moment reusing what is already implemented in test_transformer.cc
     // This is also valid for transposeGemm
     auto matcher = band(
@@ -231,9 +231,9 @@ namespace blaskernelmatchers {
     int counter = 0;
     auto acc = match(umap, allOf(access(dim(counter, _k))));
 
-    while (acc.size() > 0u) {
+    while (acc.size() > 0) {
 
-      for (int i = 0; i < acc.size(); ++i) {
+      for (int i = 0; i < (int)acc.size(); ++i) {
 	auto space = acc[i][_k].candidateSpaces();
 	auto name = space[0].range().unwrap().get_tuple_name(isl::dim::out);
 	output[name].push_back(acc[i][_k].payload().inputDimPos_);
@@ -247,7 +247,7 @@ namespace blaskernelmatchers {
   bool
   hasNoRedundancy(std::vector<int> vec) {
     bool isNotRedundant = true;
-    for (int i = 1; i < vec.size(); ++i) {
+    for (int i = 1; i < (int)vec.size(); ++i) {
       if (vec[i] == vec[i-1]) {
 	isNotRedundant = false;
 	break;
@@ -270,7 +270,7 @@ namespace blaskernelmatchers {
 
     std::vector<int> evens;
     evens.push_back(vec[0]);
-    for (auto i = 2; i < vec.size(); i += 2) {
+    for (auto i = 2; i < (int)vec.size(); i += 2) {
       if (std::find(evens.begin(), evens.end(), vec[i]) == evens.end()) 
 	evens.push_back(vec[i]);
       else 
@@ -278,7 +278,7 @@ namespace blaskernelmatchers {
     }
     // If we reach this point, then ok, lets see of their
     // next is equal.
-    for (auto i = 0; i < vec.size(); i += 2) {
+    for (auto i = 0; i < (int)vec.size(); i += 2) {
       if (vec[i] != vec[i+1])
 	return false;
     }
