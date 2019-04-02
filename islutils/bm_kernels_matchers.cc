@@ -62,7 +62,6 @@ namespace blaskernelmatchers {
   
   std::pair<bool, blaskernels::Gemm*> 
   findGemmAccess(isl::ctx ctx, isl::union_map reads, isl::union_map writes) {
-    // blaskernels::Gemm gemm_infos;
     blaskernels::Gemm * gemm_infos = new blaskernels::Gemm();
 
 
@@ -198,10 +197,6 @@ namespace blaskernelmatchers {
     auto matchReads = match(reads, localReads);
     auto matchWrites = match(writes, localWrites);
 
-
-    // The following is mostly to ensure that _b == _bb,
-    // _ii == _i and _jj == _i, since I cannot use the 
-    // same placeholder for reads and writes.
     if ((matchReads.size() == 1u) && (matchWrites.size() == 1u)) {
       int b = matchReads[0][_b].payload().inputDimPos_;
       int i = matchReads[0][_i].payload().inputDimPos_;
@@ -226,73 +221,9 @@ namespace blaskernelmatchers {
     }
   }
 
-  bool findAxpyAccess(isl::ctx ctx, isl::union_map reads, isl::union_map writes) {
-    auto _i = placeholder(ctx);
-    auto _ii = placeholder(ctx);
-
-    auto localReads = allOf(access(_i));
-    auto localWrites = allOf(access(_ii));
-
-    auto matchReads = match(reads, localReads);
-    auto matchWrites = match(writes, localWrites);
-
-    if ((matchReads.size() == 2u) && (matchWrites.size() == 1u)) {
-      int i = matchReads[0][_i].payload().inputDimPos_;
-      int i1 = matchReads[1][_i].payload().inputDimPos_;
-      int ii = matchWrites[0][_ii].payload().inputDimPos_;
-      // If I understand well, at this point, we should now that 
-      // both i occurences are equals, otherwise there would be no
-      // match. So testing with i should be enough.
-      bool isMatch = ((ii == 0) && (ii == i)); 
-      return isMatch;
-    } else {
-      return false;
-    }
-  }
-
-  bool findStrictDotProductAccess(isl::ctx ctx, isl::union_map reads, isl::union_map writes) {
-    auto _i = placeholder(ctx);
-    auto localReads = allOf(access(_i));
-    auto matchReads = match(reads, localReads);
-    if ((matchReads.size() == 2u)) {
-      int i = matchReads[0][_i].payload().inputDimPos_;
-      int i2 = matchReads[1][_i].payload().inputDimPos_;
-      auto localWrite = writes.range().unwrap();
-      auto writeSpaceDim = localWrite.dim(isl::dim::out);
-      // Another condition is the that the scalar variable
-      // should be inductive.
-      // I include writes.is_subset(reads) as a 
-      // condition to ensure that but the code crashes 
-      // when == False.
-      bool isMatch = (i == i2) && (writeSpaceDim == 0) && (writes.is_subset(reads));
-      return isMatch;
-    } else {
-      return false;
-    }
-  }
-
-  bool findDotProductAccess(isl::ctx ctx, isl::union_map reads, isl::union_map writes) {
-    auto _i = placeholder(ctx);
-    auto localReads = allOf(access(_i));
-    auto matchReads = match(reads, localReads);
-    if ((matchReads.size() == 2u)) {
-      int i = matchReads[0][_i].payload().inputDimPos_;
-      int i2 = matchReads[1][_i].payload().inputDimPos_;
-      auto localWrite = writes.range().unwrap();
-      auto writeSpaceDim = localWrite.dim(isl::dim::out);
-      // Another condition is the that the scalar variable
-      // should be inductive.
-      // I include writes.is_subset(reads) as a 
-      // condition to ensure that but the code crashes 
-      // when == False.
-      bool isMatch = (i == i2) && (writeSpaceDim == 0) && (writes.is_subset(reads));
-      return isMatch;
-    } else {
-      return false;
-    }
-  }
 
 
+/* The matching process for Contractions happens in this function */
   std::map<std::string, std::vector<int>> 
     reconstruct (isl::ctx ctx, isl::union_map umap) {
     auto _k = placeholder(ctx);
@@ -324,50 +255,6 @@ namespace blaskernelmatchers {
     }
     return isNotRedundant;
   }
-  // /* Conditions for contraction: C = A . B
-  //   1. There is a reduction
-  //   2. None of the access functions have redundant iterators
-  //   3. All iterators in A not appearing in C do apepar in B.
-  //   4. The remaining iterators of A and B == those of C. */
-  // bool findContractionAccess_(isl::ctx ctx, isl::union_map reads, isl::union_map writes) {
-  //   std::vector<int> diff1, diff2;
-
-  //   auto _reads = reconstruct(ctx, reads);
-  //   auto _writes = reconstruct(ctx, writes);
-
-  //   auto wname = _writes.begin()->first;
-  //   auto wacc = _writes.begin()->second;
-  
-  //   auto op1 = _reads.begin();
-  //   auto op2 = std::next(op1);
-
-  //   auto isReduction = (_reads.find(wname) != _reads.end()) && (wacc == _reads[wname]);
-
-  //   // Clean up
-  //   _reads.erase(wname);
-
-  //   // Sort arrays before continuing. This is necessary
-  //   // to use the following std:: functions.
-  //   std::sort(wacc.begin(), wacc.end());
-  //   std::sort(op1->second.begin(), op1->second.end());
-  //   std::sort(op2->second.begin(), op2->second.end());
-
-  //   bool noRedundancy = hasNoRedundancy(wacc);
-  //   for (auto r : _reads) {
-  //     noRedundancy = noRedundancy && hasNoRedundancy(r.second);
-  //   }
- 
-  //   std::set_difference(op1->second.begin(), op1->second.end(), 
-  //                       wacc.begin(), wacc.end(), 
-  //                       std::back_inserter(diff1));
-  //   std::set_difference(op2->second.begin(), op2->second.end(), 
-  //                       wacc.begin(), wacc.end(), 
-  //                       std::back_inserter(diff2));
-
-  //   bool hasContractionAxes = (diff1.size() > 0) && (diff1 == diff2);
-
-  //   return isReduction && noRedundancy && hasContractionAxes;
-  // }
 
   bool hasDuplicatedIndexesOnly(std::vector<int> vec) {
     // We assume the vector to be sorted because
@@ -449,9 +336,21 @@ namespace blaskernelmatchers {
 
   }
 
+  /* Conditions for contraction: C = A . B
+    1. There is a reduction
+    2. None of the access functions have redundant iterators
+    3. All iterators in A not appearing in C do apepar in B.
+    4. The remaining iterators of A and B == those of C. */
+  
   std::pair<bool, blaskernels::Gemm*>
   findContractionAccess(isl::ctx ctx, isl::union_map reads, isl::union_map writes) {
     std::vector<std::vector<int>> diffs;
+
+    // The matching occurs in the reconstruct function. 
+    // the idea is just to collect and reconstruct access function
+    // to analyze them in order to determine if there is a contraction 
+    // or not. Integer values representing dimensions (e.g. 0 for 1st dimention,
+    // 1 for 2nd dimension, ect) are the informations that are collected.
     auto _reads = reconstruct(ctx, reads);
     auto _writes = reconstruct(ctx, writes);
 
@@ -489,6 +388,12 @@ namespace blaskernelmatchers {
 
     std::vector<std::pair<AccessFunction, AccessFunction>> contractionPairs;
     
+    // Collect individual pairs of contractions.
+    // This could be useful if, in the presence of 
+    // more than two operands, due to associativity properties
+    // there are different choices of contractions.
+    // However, the following collects redundant results, i.e., 
+    // {1, 2} and {2, 1}.
     for (auto r1 : _reads) {
       for (auto r2 : _reads) {
         if (r1.second != r2.second) {
@@ -505,30 +410,77 @@ namespace blaskernelmatchers {
   }
 
 
-  bool findTransposeAccess(isl::ctx ctx, isl::union_map reads, isl::union_map writes) {
-    auto _i = placeholder(ctx);
-    auto _j = placeholder(ctx);
-    auto _ii = placeholder(ctx);
-    auto _jj = placeholder(ctx);
-    auto localReads = allOf(access(_i, _j));
-    auto localWrites = allOf(access(_ii, _jj));
+  // bool findTransposeAccess(isl::ctx ctx, isl::union_map reads, isl::union_map writes) {
+  //   auto _i = placeholder(ctx);
+  //   auto _j = placeholder(ctx);
+  //   auto _ii = placeholder(ctx);
+  //   auto _jj = placeholder(ctx);
+  //   auto localReads = allOf(access(_i, _j));
+  //   auto localWrites = allOf(access(_ii, _jj));
 
-    auto matchReads = match(reads, localReads);
-    auto matchWrites = match(writes, localWrites);
+  //   auto matchReads = match(reads, localReads);
+  //   auto matchWrites = match(writes, localWrites);
 
-    if ((matchReads.size() == 1u) && (matchWrites.size() == 1u)) {
-      // This far, at least we ensure that there is only one read 
-      // and one write. Then we need to make sure that the correspond
-      // to a transposition
-      int i1 = matchReads[0][_i].payload().inputDimPos_;
-      int j1 = matchReads[0][_j].payload().inputDimPos_;
-      auto i2 = matchWrites[0][_ii].payload().inputDimPos_;
-      auto j2 = matchWrites[0][_jj].payload().inputDimPos_;
-      bool isMatch = ((i1 == j2) && (i2 == j1));
-      return isMatch;
-    } else {
-      return false;
-    }
-  }
+  //   if ((matchReads.size() == 1u) && (matchWrites.size() == 1u)) {
+  //     // This far, at least we ensure that there is only one read 
+  //     // and one write. Then we need to make sure that the correspond
+  //     // to a transposition
+  //     int i1 = matchReads[0][_i].payload().inputDimPos_;
+  //     int j1 = matchReads[0][_j].payload().inputDimPos_;
+  //     auto i2 = matchWrites[0][_ii].payload().inputDimPos_;
+  //     auto j2 = matchWrites[0][_jj].payload().inputDimPos_;
+  //     bool isMatch = ((i1 == j2) && (i2 == j1));
+  //     return isMatch;
+  //   } else {
+  //     return false;
+  //   }
+
+
+
+  // bool findAxpyAccess(isl::ctx ctx, isl::union_map reads, isl::union_map writes) {
+  //   auto _i = placeholder(ctx);
+  //   auto _ii = placeholder(ctx);
+
+  //   auto localReads = allOf(access(_i));
+  //   auto localWrites = allOf(access(_ii));
+
+  //   auto matchReads = match(reads, localReads);
+  //   auto matchWrites = match(writes, localWrites);
+
+  //   if ((matchReads.size() == 2u) && (matchWrites.size() == 1u)) {
+  //     int i = matchReads[0][_i].payload().inputDimPos_;
+  //     int i1 = matchReads[1][_i].payload().inputDimPos_;
+  //     int ii = matchWrites[0][_ii].payload().inputDimPos_;
+  //     // If I understand well, at this point, we should know that 
+  //     // both i occurences are equals, otherwise there would be no
+  //     // match. So testing with i should be enough.
+  //     bool isMatch = ((ii == 0) && (ii == i)); 
+  //     return isMatch;
+  //   } else {
+  //     return false;
+  //   }
+  // }
+
+
+  // bool findDotProductAccess(isl::ctx ctx, isl::union_map reads, isl::union_map writes) {
+  //   auto _i = placeholder(ctx);
+  //   auto localReads = allOf(access(_i));
+  //   auto matchReads = match(reads, localReads);
+  //   if ((matchReads.size() == 2u)) {
+  //     int i = matchReads[0][_i].payload().inputDimPos_;
+  //     int i2 = matchReads[1][_i].payload().inputDimPos_;
+  //     auto localWrite = writes.range().unwrap();
+  //     auto writeSpaceDim = localWrite.dim(isl::dim::out);
+  //     // Another condition is the that the scalar variable
+  //     // should be inductive.
+  //     // So writes.is_subset(reads) is included as a condition.
+  //     bool isMatch = (i == i2) && (writeSpaceDim == 0) && (writes.is_subset(reads));
+  //     return isMatch;
+  //   } else {
+  //     return false;
+  //   }
+  // }
+
+  // }
 } // namespace blaskernelsmatchers
 

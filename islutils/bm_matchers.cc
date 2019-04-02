@@ -380,6 +380,17 @@ namespace blasmatchers {
 	     isl::union_map writes) {
   
     std::vector<blaskernels::BlasKernels*> k;
+
+/* For each find* function, the process is as follows. 
+   Match access functions with access matchers available in 
+   the collection. If there is a match, then match the enclosing
+   loop nest with the hypothetical kernel to confirm that it is 
+   indeed the kernel found. 
+
+   However, perhaps findAnyDotProduct is better off being implemented 
+   with matching the tree first before the access functions..
+*/ 
+
     if (findGemm(ctx, scop, reads, writes).first == true) {
       k.push_back(findGemm(ctx, scop, reads, writes).second);
     }
@@ -418,6 +429,7 @@ namespace blasmatchers {
     for (auto acc : accesses) {
       auto writes = acc.first;
       auto reads = acc.second;
+      // For each statement represented by <reads, writes>, search for matches.
       auto bks = findKernel(ctx, scop, reads, writes);
       auto pair = std::make_pair(acc, bks);
       fk.push_back(pair);
@@ -426,6 +438,12 @@ namespace blasmatchers {
   }
 
 
+/* The following implementations of matcher for Gemm and 
+   variants are directly based on what was found in the file 
+   test_transformers.cc. 
+   Having done very few changes, one will notice that 
+   isl::schedule_node *_node is actually not used at all. 
+   Feel free to clean it up or to use it. */
 
   std::pair<bool, blaskernels::Gemm*>
   findGemm(isl::ctx ctx, 
@@ -436,6 +454,8 @@ namespace blasmatchers {
     auto isGemm = findGemmAccess(ctx, reads, writes);
 
     if (isGemm.first == true) {
+            // At this point it doesn't matter whether we use the
+      // domain of reads or writes, it's the same
       auto accessdom = reads.domain();
       auto scheddom = scop.schedule.get_domain();
 
@@ -472,34 +492,6 @@ namespace blasmatchers {
   }
 
 
-  // bool
-  // findTranspose(isl::ctx ctx,
-  // 									 			Scop scop,
-  // 									 			isl::union_map reads,
-  // 									 			isl::union_map writes) {
-  // 	bool isTranspose = findTransposeAccess(ctx, reads, writes);
-  // 	if (isTranspose == true) {
-  // 		//std::cout << "Found Transpose" << std::endl;
-  // 		// At this point it doesn't matter whether we use the
-  // 		// domain of reads or writes, it's the same
-  // 		auto accessdom = reads.domain();
-  // 		auto scheddom = scop.schedule.get_domain();
-	
-  // 		if (accessdom.is_subset(scheddom)) {
-  // 			isl::schedule_node root = scop.schedule.get_root();
-  // 			isl::schedule_node *_node;
-  // 			isl::schedule_node subnode;
-  // 			searchRootNodeMatchingDomain(root, accessdom, subnode);
-  // 			// Update isTranspose, perhaps the result is False, 
-  // 			// then the functions shall return false.
-  // 			isTranspose = findTransposeTree(subnode, _node); 
-  // 		}
-  // 	}
-  // 	return isTranspose;
-  // }
-	
-
-
   std::pair<bool, blaskernels::Gemm*>  findTransposeGemm(isl::ctx ctx,
 							 Scop scop,
 							 isl::union_map reads,
@@ -508,8 +500,6 @@ namespace blasmatchers {
     auto isTransposeGemm = findTransposeGemmAccess(ctx, reads, writes);
     isl::schedule_node newnode;
     if (isTransposeGemm.first == true) {
-      // At this point it doesn't matter whether we use the
-      // domain of reads or writes, it's the same
       auto accessdom = reads.domain();
       auto scheddom = scop.schedule.get_domain();
 
@@ -518,8 +508,6 @@ namespace blasmatchers {
 	isl::schedule_node subnode;
 	searchRootNodeMatchingDomain(root, accessdom, subnode);
 	isl::schedule_node *_node;
-	// Of course, the tree should be the same as 
-	// standard Gemm.
 	auto dependences = computeAllDependences(scop);
 	subnode = mergeIfTilable(subnode, dependences);
 	isTransposeGemm.first = findGemmTree(subnode, _node);
@@ -648,6 +636,73 @@ namespace blasmatchers {
   }
 
 
+    std::pair<bool, blaskernels::Gemm*> 
+  findContraction(isl::ctx ctx,
+		  Scop scop,
+		  isl::union_map reads,
+		  isl::union_map writes) {
+    auto isContraction = findContractionAccess(ctx, reads, writes);
+    if (isContraction.first == true) {
+      isContraction.second->setType(blaskernels::contraction);
+    }
+    return isContraction;
+  }
+
+  std::pair<bool, blaskernels::Gemm*>
+  findAnyDotProduct(isl::ctx ctx, Scop scop, isl::union_map reads, isl::union_map writes) {
+    auto hasDotProduct = findAnyDotProductAccess(ctx, reads, writes);
+ 
+    if (hasDotProduct.first == true) {
+      auto accessdom = reads.domain();
+      auto scheddom = scop.schedule.get_domain();
+        hasDotProduct.second->setType(blaskernels::dotProduct);
+
+  //     if (accessdom.is_subset(scheddom)) {
+	// isl::schedule_node root = scop.schedule.get_root();
+	// isl::schedule_node subnode;
+	// searchRootNodeMatchingDomain(root, accessdom, subnode);
+	// isl::schedule_node *_node;
+	// hasDotProduct.first = findDotProductTree(subnode, _node);
+ 
+  //     }
+    }
+    return hasDotProduct;
+  }
+
+
+
+  /* The following has been commented out, as they need to have 
+     their return values adapted to std::pair<bool, blaskernels::ProperClass*> */
+
+
+  // bool
+  // findTranspose(isl::ctx ctx,
+  // 									 			Scop scop,
+  // 									 			isl::union_map reads,
+  // 									 			isl::union_map writes) {
+  // 	bool isTranspose = findTransposeAccess(ctx, reads, writes);
+  // 	if (isTranspose == true) {
+  // 		//std::cout << "Found Transpose" << std::endl;
+  // 		// At this point it doesn't matter whether we use the
+  // 		// domain of reads or writes, it's the same
+  // 		auto accessdom = reads.domain();
+  // 		auto scheddom = scop.schedule.get_domain();
+	
+  // 		if (accessdom.is_subset(scheddom)) {
+  // 			isl::schedule_node root = scop.schedule.get_root();
+  // 			isl::schedule_node *_node;
+  // 			isl::schedule_node subnode;
+  // 			searchRootNodeMatchingDomain(root, accessdom, subnode);
+  // 			// Update isTranspose, perhaps the result is False, 
+  // 			// then the functions shall return false.
+  // 			isTranspose = findTransposeTree(subnode, _node); 
+  // 		}
+  // 	}
+  // 	return isTranspose;
+  // }
+	
+
+
   // bool 
   // findAxpy(isl::ctx ctx, 
   // 				 Scop scop,
@@ -690,36 +745,5 @@ namespace blasmatchers {
   // 	return isDotProduct;
   // }
 
-  std::pair<bool, blaskernels::Gemm*> 
-  findContraction(isl::ctx ctx,
-		  Scop scop,
-		  isl::union_map reads,
-		  isl::union_map writes) {
-    auto isContraction = findContractionAccess(ctx, reads, writes);
-    if (isContraction.first == true) {
-      isContraction.second->setType(blaskernels::contraction);
-    }
-    return isContraction;
-  }
 
-  std::pair<bool, blaskernels::Gemm*>
-  findAnyDotProduct(isl::ctx ctx, Scop scop, isl::union_map reads, isl::union_map writes) {
-    auto hasDotProduct = findAnyDotProductAccess(ctx, reads, writes);
- 
-    if (hasDotProduct.first == true) {
-      auto accessdom = reads.domain();
-      auto scheddom = scop.schedule.get_domain();
-        hasDotProduct.second->setType(blaskernels::dotProduct);
-
-  //     if (accessdom.is_subset(scheddom)) {
-	// isl::schedule_node root = scop.schedule.get_root();
-	// isl::schedule_node subnode;
-	// searchRootNodeMatchingDomain(root, accessdom, subnode);
-	// isl::schedule_node *_node;
-	// hasDotProduct.first = findDotProductTree(subnode, _node);
- 
-  //     }
-    }
-    return hasDotProduct;
-  }
 } // namespace blasMathers
