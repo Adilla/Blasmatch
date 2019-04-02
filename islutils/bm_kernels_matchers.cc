@@ -444,8 +444,8 @@ namespace blaskernelmatchers {
     
     bool hasDotProduct = hasDuplicatedIndexesOnly(diff) && (diff.size() == 2);
 
-    blaskernels::Gemm * gemm_infos = new blaskernels::Gemm();
-    return {isReduction && hasDotProduct, gemm_infos};
+    blaskernels::Gemm * dp_infos = new blaskernels::Gemm();
+    return {isReduction && hasDotProduct, dp_infos};
 
   }
 
@@ -500,8 +500,8 @@ namespace blaskernelmatchers {
     }
   
   
-    blaskernels::Gemm * gemm_infos = new blaskernels::Gemm();
-    return {isReduction && noRedundancy && hasContractionAxes, gemm_infos};
+    blaskernels::Gemm * c_infos = new blaskernels::Gemm();
+    return {isReduction && noRedundancy && hasContractionAxes, c_infos};
   }
 
 

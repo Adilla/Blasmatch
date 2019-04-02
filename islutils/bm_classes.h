@@ -53,6 +53,7 @@ namespace blaskernels {
     transpose,
     transposeGemm,
     batchGemm,
+    transposeBatchGemm,
     axpy,
     dotProduct,
     contraction
@@ -117,13 +118,15 @@ namespace blaskernels {
 
 
 
-
   std::string codeGenGPU(isl::ast_build, isl::ast_node, pet_stmt*, void*);
   std::string printCudaHeader();
   std::string getAccessName(isl::map m);
   std::string getAccessName(isl::set s);
   unsigned getAccessIndexes(isl::map m);
   unsigned getAccessIndexes(isl::set s);
+
+
+
 
 
 

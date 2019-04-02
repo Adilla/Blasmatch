@@ -383,22 +383,25 @@ namespace blasmatchers {
     if (findGemm(ctx, scop, reads, writes).first == true) {
       k.push_back(findGemm(ctx, scop, reads, writes).second);
     }
-
     if (findTransposeGemm(ctx, scop, reads, writes).first == true) {
       k.push_back(findTransposeGemm(ctx, scop, reads, writes).second);
     }
     if (findBatchGemm(ctx, scop, reads, writes).first == true) {
       k.push_back(findBatchGemm(ctx, scop, reads, writes).second);
     }
-    // if (findAnyDotProduct(ctx, scop, reads, writes).first == true) {
-    //   k.push_back(findAnyDotProduct(ctx, scop, reads, writes).second);
-    // }
-    // if (findContraction(ctx, scop, reads, writes).first == true) {
-    //    k.push_back(findContraction(ctx,scop, reads, writes).second);
-    // }
+    if (findTransposeBatchGemm(ctx, scop, reads, writes).first == true) {
+      k.push_back(findTransposeBatchGemm(ctx, scop, reads, writes).second);
+    }
+    if (findAnyDotProduct(ctx, scop, reads, writes).first == true) {
+      k.push_back(findAnyDotProduct(ctx, scop, reads, writes).second);
+    }
+    if (findContraction(ctx, scop, reads, writes).first == true) {
+       k.push_back(findContraction(ctx,scop, reads, writes).second);
+    }
 
     return k;
   }
+
 
   std::vector<std::pair<ScopStmt, std::vector<blaskernels::BlasKernels*>>>
     findPatterns(isl::ctx ctx, Scop scop) {
@@ -589,7 +592,53 @@ namespace blasmatchers {
    
 	  isBatchGemm.second->array_infos = collectArrayInfo(scop);
    
-	  isBatchGemm.second->fill(false); // has transposed B.
+	  isBatchGemm.second->fill(false); // has no transposed B.
+	  isBatchGemm.second->setDataType();
+ 
+        }
+      }
+    }
+    return isBatchGemm;
+  }
+
+    std::pair<bool, blaskernels::Gemm*> 
+  findTransposeBatchGemm(isl::ctx ctx, 
+		Scop scop,
+		isl::union_map reads,
+		isl::union_map writes) {
+    auto isBatchGemm = findTransposeBatchGemmAccess(ctx, reads, writes);
+    isl::schedule_node newnode;
+    if (isBatchGemm.first == true) {
+      auto accessdom = reads.domain();
+      auto scheddom = scop.schedule.get_domain();
+
+      if (accessdom.is_subset(scheddom)) {
+	isl::schedule_node root = scop.schedule.get_root();
+	isl::schedule_node subnode;
+	searchRootNodeMatchingDomain(root, accessdom, subnode);
+	isl::schedule_node *_node;
+	auto dependences = computeAllDependences(scop);
+	subnode = mergeIfTilable(subnode, dependences);
+	isBatchGemm.first = findGemmTree(subnode, _node);
+
+        if (isBatchGemm.first == true) {
+          newnode = root.root().child(0);
+        
+	  isl::union_set domain = newnode.get_domain();
+
+	  newnode = addCuBLASHandleStartUp(newnode);
+	  newnode = addArraysTearDown(newnode);
+	  newnode = addCuBLASHandleTearDown(newnode);
+	  newnode = addCopyToDevice(newnode);
+	  newnode = addCopyFromDevice(newnode);
+	  newnode = addKernelBoundaries(newnode);
+       
+	  isBatchGemm.second->setType(blaskernels::transposeBatchGemm);
+	  isBatchGemm.second->setScheduleNode(newnode);
+   
+	  isBatchGemm.second->array_infos = collectArrayInfo(scop);
+   
+	  isBatchGemm.second->fill(true); // has transposed B.
 	  isBatchGemm.second->setDataType();
  
         }
@@ -656,18 +705,20 @@ namespace blasmatchers {
   std::pair<bool, blaskernels::Gemm*>
   findAnyDotProduct(isl::ctx ctx, Scop scop, isl::union_map reads, isl::union_map writes) {
     auto hasDotProduct = findAnyDotProductAccess(ctx, reads, writes);
+ 
     if (hasDotProduct.first == true) {
       auto accessdom = reads.domain();
       auto scheddom = scop.schedule.get_domain();
-
-      if (accessdom.is_subset(scheddom)) {
-	isl::schedule_node root = scop.schedule.get_root();
-	isl::schedule_node subnode;
-	searchRootNodeMatchingDomain(root, accessdom, subnode);
-	isl::schedule_node *_node;
-	hasDotProduct.first = findDotProductTree(subnode, _node);
         hasDotProduct.second->setType(blaskernels::dotProduct);
-      }
+
+  //     if (accessdom.is_subset(scheddom)) {
+	// isl::schedule_node root = scop.schedule.get_root();
+	// isl::schedule_node subnode;
+	// searchRootNodeMatchingDomain(root, accessdom, subnode);
+	// isl::schedule_node *_node;
+	// hasDotProduct.first = findDotProductTree(subnode, _node);
+ 
+  //     }
     }
     return hasDotProduct;
   }

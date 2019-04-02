@@ -24,6 +24,8 @@ namespace blasmatchers {
   //bool findTranspose(isl::ctx, Scop, isl::union_map, isl::union_map); 
   std::pair<bool, blaskernels::Gemm*> findTransposeGemm(isl::ctx, Scop, isl::union_map, isl::union_map); 
   std::pair<bool, blaskernels::Gemm*> findBatchGemm(isl::ctx, Scop, isl::union_map, isl::union_map); 
+  std::pair<bool, blaskernels::Gemm*> findTransposeBatchGemm(isl::ctx, Scop, isl::union_map, isl::union_map); 
+  
   /* // bool findAxpy(isl::ctx, Scop, isl::union_map, isl::union_map); */
   /* // bool findDotProduct(isl::ctx, Scop, isl::union_map, isl::union_map); */
   std::pair<bool, blaskernels::Gemm*> findContraction(isl::ctx, Scop, isl::union_map, isl::union_map);

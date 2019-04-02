@@ -18,11 +18,10 @@ namespace blaskernelmatchers {
   std::pair<bool, blaskernels::Gemm*> findBatchGemmAccess(isl::ctx ctx, isl::union_map reads, isl::union_map writes);
   std::pair<bool, blaskernels::Gemm*> findTransposeGemmAccess(isl::ctx ctx, isl::union_map reads, isl::union_map writes);
   std::pair<bool, blaskernels::Gemm*> findTransposeBatchGemmAccess(isl::ctx ctx, isl::union_map reads, isl::union_map writes);
-  bool findAxpyAccess(isl::ctx ctx, isl::union_map reads, isl::union_map writes);
-  bool findStrictDotProductAccess(isl::ctx ctx, isl::union_map reads, isl::union_map writes);
-  bool findDotProductAccess(isl::ctx ctx, isl::union_map reads, isl::union_map writes);
+  //bool findAxpyAccess(isl::ctx ctx, isl::union_map reads, isl::union_map writes);
+  //bool findDotProductAccess(isl::ctx ctx, isl::union_map reads, isl::union_map writes);
   std::pair<bool, blaskernels::Gemm*> findContractionAccess(isl::ctx ctx, isl::union_map reads, isl::union_map writes);
-  bool findTransposeAccess(isl::ctx ctx, isl::union_map reads, isl::union_map writes);
+  //bool findTransposeAccess(isl::ctx ctx, isl::union_map reads, isl::union_map writes);
 
 
 
