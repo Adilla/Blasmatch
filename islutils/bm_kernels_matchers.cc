@@ -223,7 +223,7 @@ namespace blaskernelmatchers {
 
 
 
-/* The matching process for Contractions happens in this function */
+  /* The matching process for Contractions happens in this function */
   std::map<std::string, std::vector<int>> 
     reconstruct (isl::ctx ctx, isl::union_map umap) {
     auto _k = placeholder(ctx);
@@ -337,10 +337,10 @@ namespace blaskernelmatchers {
   }
 
   /* Conditions for contraction: C = A . B
-    1. There is a reduction
-    2. None of the access functions have redundant iterators
-    3. All iterators in A not appearing in C do apepar in B.
-    4. The remaining iterators of A and B == those of C. */
+     1. There is a reduction
+     2. None of the access functions have redundant iterators
+     3. All iterators in A not appearing in C do apepar in B.
+     4. The remaining iterators of A and B == those of C. */
   
   std::pair<bool, blaskernels::Gemm*>
   findContractionAccess(isl::ctx ctx, isl::union_map reads, isl::union_map writes) {

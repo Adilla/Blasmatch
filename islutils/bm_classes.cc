@@ -210,23 +210,23 @@ namespace blaskernels {
       isl::map m = isl::map::from_union_map(scheduledAccess);
       isl::pw_multi_aff multiAff = isl::pw_multi_aff::from_map(m);
      
-if (batch != -1) {
+      if (batch != -1) {
 
-      if(m.dim(isl::dim::out) != 3) {
-	continue;
-      }
-      if(m.dim(isl::dim::in) != 4) {
-	continue;
-      }
-} else {
-    if(m.dim(isl::dim::out) != 2) {
-	continue;
-      }
-      if(m.dim(isl::dim::in) != 3) {
-	continue;
-      }
+	if(m.dim(isl::dim::out) != 3) {
+	  continue;
+	}
+	if(m.dim(isl::dim::in) != 4) {
+	  continue;
+	}
+      } else {
+	if(m.dim(isl::dim::out) != 2) {
+	  continue;
+	}
+	if(m.dim(isl::dim::in) != 3) {
+	  continue;
+	}
 
-}
+      }
       // skip if sched and access to not belong to the same 
       // stmt (not a good implementation).
       isl::map schedAsMap = isl::map::from_union_map(s);
@@ -247,15 +247,15 @@ if (batch != -1) {
 	    }
 	  });
       }
-if (batch != -1) {
-      if(indexesDiscovered[1] == x && indexesDiscovered[2] == y) {
-	return std::make_pair(m, true);
+      if (batch != -1) {
+	if(indexesDiscovered[1] == x && indexesDiscovered[2] == y) {
+	  return std::make_pair(m, true);
+	}
+      } else {
+	if(indexesDiscovered[0] == x && indexesDiscovered[1] == y) {
+	  return std::make_pair(m, true);
+	}
       }
-} else {
-    if(indexesDiscovered[0] == x && indexesDiscovered[1] == y) {
-	return std::make_pair(m, true);
-      }
-}
       indexesDiscovered.erase(indexesDiscovered.begin(), 
 			      indexesDiscovered.end());
     }
@@ -264,8 +264,8 @@ if (batch != -1) {
   }
 
 
-int getBatchNumber(std::string id, std::vector<GpuArrayInfo> gp) {
-  int batch;
+  int getBatchNumber(std::string id, std::vector<GpuArrayInfo> gp) {
+    int batch;
     for(size_t i = 0; i < gp.size(); ++i) {
       if(gp[i].name.compare(id) != 0) {
         continue;
@@ -312,14 +312,14 @@ int getBatchNumber(std::string id, std::vector<GpuArrayInfo> gp) {
      
         auto allPoints =
           isl::map::from_domain_and_range(extent, extent);
-          isl::pw_aff min, max;
-          if (batch != -1) {
-         min = allPoints.dim_min(1);
-        max = allPoints.dim_max(1);
-          } else {
-            min = allPoints.dim_min(0);
-            max = allPoints.dim_max(0);
-          }
+	isl::pw_aff min, max;
+	if (batch != -1) {
+	  min = allPoints.dim_min(1);
+	  max = allPoints.dim_max(1);
+	} else {
+	  min = allPoints.dim_min(0);
+	  max = allPoints.dim_max(0);
+	}
         
         isl::val min_val;
         isl::val max_val;
@@ -354,14 +354,14 @@ int getBatchNumber(std::string id, std::vector<GpuArrayInfo> gp) {
        
         auto allPoints =
           isl::map::from_domain_and_range(extent, extent);
-                 isl::pw_aff min, max;
-          if (batch != -1) {
-         min = allPoints.dim_min(2);
-        max = allPoints.dim_max(2);
-          } else {
-            min = allPoints.dim_min(1);
-            max = allPoints.dim_max(1);
-          }
+	isl::pw_aff min, max;
+	if (batch != -1) {
+	  min = allPoints.dim_min(2);
+	  max = allPoints.dim_max(2);
+	} else {
+	  min = allPoints.dim_min(1);
+	  max = allPoints.dim_max(1);
+	}
         isl::val min_val;
         isl::val max_val;
 
@@ -520,14 +520,14 @@ int getBatchNumber(std::string id, std::vector<GpuArrayInfo> gp) {
       else {
 	result += createIndent(tab) + "cublasStat = cublasSetMatrix(";
   
-  int _i, _j;
-  if (batch == -1) {
-    _i = 0;
-    _j = 1;
-  } else {
-    _i = 1; 
-    _j = 2;
-  }
+	int _i, _j;
+	if (batch == -1) {
+	  _i = 0;
+	  _j = 1;
+	} else {
+	  _i = 1; 
+	  _j = 2;
+	}
 
 	result += conversion::to_string(getBounds(array_infos[i])[_i]);
 	result += ", ";
@@ -583,14 +583,14 @@ int getBatchNumber(std::string id, std::vector<GpuArrayInfo> gp) {
       if(array_infos[i].name.compare(write_var) == 0) {
 	result += createIndent(tab) + "cublasStat = cublasGetMatrix(";
 
-    int _i, _j;
-  if (batch == -1) {
-    _i = 0;
-    _j = 1;
-  } else {
-    _i = 1; 
-    _j = 2;
-  }
+	int _i, _j;
+	if (batch == -1) {
+	  _i = 0;
+	  _j = 1;
+	} else {
+	  _i = 1; 
+	  _j = 2;
+	}
 	result += conversion::to_string(getBounds(array_infos[i])[_i]);
 	result += ", ";
 	result += conversion::to_string(getBounds(array_infos[i])[_j]);

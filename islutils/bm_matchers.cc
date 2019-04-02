@@ -381,15 +381,15 @@ namespace blasmatchers {
   
     std::vector<blaskernels::BlasKernels*> k;
 
-/* For each find* function, the process is as follows. 
-   Match access functions with access matchers available in 
-   the collection. If there is a match, then match the enclosing
-   loop nest with the hypothetical kernel to confirm that it is 
-   indeed the kernel found. 
+    /* For each find* function, the process is as follows. 
+       Match access functions with access matchers available in 
+       the collection. If there is a match, then match the enclosing
+       loop nest with the hypothetical kernel to confirm that it is 
+       indeed the kernel found. 
 
-   However, perhaps findAnyDotProduct is better off being implemented 
-   with matching the tree first before the access functions..
-*/ 
+       However, perhaps findAnyDotProduct is better off being implemented 
+       with matching the tree first before the access functions..
+    */ 
 
     if (findGemm(ctx, scop, reads, writes).first == true) {
       k.push_back(findGemm(ctx, scop, reads, writes).second);
@@ -407,7 +407,7 @@ namespace blasmatchers {
       k.push_back(findAnyDotProduct(ctx, scop, reads, writes).second);
     }
     if (findContraction(ctx, scop, reads, writes).first == true) {
-       k.push_back(findContraction(ctx,scop, reads, writes).second);
+      k.push_back(findContraction(ctx,scop, reads, writes).second);
     }
 
     return k;
@@ -438,12 +438,12 @@ namespace blasmatchers {
   }
 
 
-/* The following implementations of matcher for Gemm and 
-   variants are directly based on what was found in the file 
-   test_transformers.cc. 
-   Having done very few changes, one will notice that 
-   isl::schedule_node *_node is actually not used at all. 
-   Feel free to clean it up or to use it. */
+  /* The following implementations of matcher for Gemm and 
+     variants are directly based on what was found in the file 
+     test_transformers.cc. 
+     Having done very few changes, one will notice that 
+     isl::schedule_node *_node is actually not used at all. 
+     Feel free to clean it up or to use it. */
 
   std::pair<bool, blaskernels::Gemm*>
   findGemm(isl::ctx ctx, 
@@ -454,7 +454,7 @@ namespace blasmatchers {
     auto isGemm = findGemmAccess(ctx, reads, writes);
 
     if (isGemm.first == true) {
-            // At this point it doesn't matter whether we use the
+      // At this point it doesn't matter whether we use the
       // domain of reads or writes, it's the same
       auto accessdom = reads.domain();
       auto scheddom = scop.schedule.get_domain();
@@ -589,11 +589,11 @@ namespace blasmatchers {
     return isBatchGemm;
   }
 
-    std::pair<bool, blaskernels::Gemm*> 
+  std::pair<bool, blaskernels::Gemm*> 
   findTransposeBatchGemm(isl::ctx ctx, 
-		Scop scop,
-		isl::union_map reads,
-		isl::union_map writes) {
+			 Scop scop,
+			 isl::union_map reads,
+			 isl::union_map writes) {
     auto isBatchGemm = findTransposeBatchGemmAccess(ctx, reads, writes);
     isl::schedule_node newnode;
     if (isBatchGemm.first == true) {
@@ -636,7 +636,7 @@ namespace blasmatchers {
   }
 
 
-    std::pair<bool, blaskernels::Gemm*> 
+  std::pair<bool, blaskernels::Gemm*> 
   findContraction(isl::ctx ctx,
 		  Scop scop,
 		  isl::union_map reads,
@@ -655,16 +655,16 @@ namespace blasmatchers {
     if (hasDotProduct.first == true) {
       auto accessdom = reads.domain();
       auto scheddom = scop.schedule.get_domain();
-        hasDotProduct.second->setType(blaskernels::dotProduct);
+      hasDotProduct.second->setType(blaskernels::dotProduct);
 
-  //     if (accessdom.is_subset(scheddom)) {
-	// isl::schedule_node root = scop.schedule.get_root();
-	// isl::schedule_node subnode;
-	// searchRootNodeMatchingDomain(root, accessdom, subnode);
-	// isl::schedule_node *_node;
-	// hasDotProduct.first = findDotProductTree(subnode, _node);
+      //     if (accessdom.is_subset(scheddom)) {
+      // isl::schedule_node root = scop.schedule.get_root();
+      // isl::schedule_node subnode;
+      // searchRootNodeMatchingDomain(root, accessdom, subnode);
+      // isl::schedule_node *_node;
+      // hasDotProduct.first = findDotProductTree(subnode, _node);
  
-  //     }
+      //     }
     }
     return hasDotProduct;
   }

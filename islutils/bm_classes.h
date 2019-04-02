@@ -66,7 +66,7 @@ namespace blaskernels {
 
     // Kernel id derived from enumeration
     int type;
-        int batch = -1;
+    int batch = -1;
     std::string data_type = "D";
     // The matching schedule node
     isl::schedule_node schedule_node;

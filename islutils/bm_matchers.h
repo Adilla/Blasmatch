@@ -31,7 +31,7 @@ namespace blasmatchers {
 
 
   /* Commenting out the following patterns. The matchers work but return values 
-      need to be adapted in the form of std::pair<bool, blaskernels::ProperClass*> */
+     need to be adapted in the form of std::pair<bool, blaskernels::ProperClass*> */
       
   // bool findTranspose(isl::ctx, Scop, isl::union_map, isl::union_map); 
   // bool findAxpy(isl::ctx, Scop, isl::union_map, isl::union_map);
