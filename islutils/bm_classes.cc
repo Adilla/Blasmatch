@@ -191,7 +191,8 @@ namespace blaskernels {
   /// declaring and allocating the required copies of arrays on device.
 
   std::pair<isl::map, bool> 
-  findAccess(std::vector<GpuArrayInfo> &gv, int x, int y, isl::union_map s) {
+  findAccess(std::vector<GpuArrayInfo> &gv, int x, int y, isl::union_map s, int batch) {
+  
 
     std::vector<isl::map> allAccesses;
     for(size_t i = 0; i < gv.size(); ++i) {
@@ -202,18 +203,30 @@ namespace blaskernels {
 
     std::vector<int> indexesDiscovered;
 
+
     for(size_t i = 0; i < allAccesses.size(); ++i) {
       isl::union_map scheduledAccess = isl::union_map(allAccesses[i]);
       scheduledAccess.apply_domain(s);
       isl::map m = isl::map::from_union_map(scheduledAccess);
       isl::pw_multi_aff multiAff = isl::pw_multi_aff::from_map(m);
-    
-      if(m.dim(isl::dim::out) != 2) {
+     
+if (batch != -1) {
+
+      if(m.dim(isl::dim::out) != 3) {
+	continue;
+      }
+      if(m.dim(isl::dim::in) != 4) {
+	continue;
+      }
+} else {
+    if(m.dim(isl::dim::out) != 2) {
 	continue;
       }
       if(m.dim(isl::dim::in) != 3) {
 	continue;
       }
+
+}
       // skip if sched and access to not belong to the same 
       // stmt (not a good implementation).
       isl::map schedAsMap = isl::map::from_union_map(s);
@@ -228,15 +241,21 @@ namespace blaskernels {
 	    for(size_t in = 0; in < m.dim(isl::dim::in); ++in) {
 	      isl::val v = a.get_coefficient_val(isl::dim::in, in);
 	      if(v.is_one()) {
+
 		indexesDiscovered.push_back(in);
 	      }
 	    }
 	  });
       }
-
-      if(indexesDiscovered[0] == x && indexesDiscovered[1] == y) {
+if (batch != -1) {
+      if(indexesDiscovered[1] == x && indexesDiscovered[2] == y) {
 	return std::make_pair(m, true);
       }
+} else {
+    if(indexesDiscovered[0] == x && indexesDiscovered[1] == y) {
+	return std::make_pair(m, true);
+      }
+}
       indexesDiscovered.erase(indexesDiscovered.begin(), 
 			      indexesDiscovered.end());
     }
@@ -245,8 +264,8 @@ namespace blaskernels {
   }
 
 
-  int getRowNumber(std::string id, std::vector<GpuArrayInfo> gp) {
-    int rows;
+int getBatchNumber(std::string id, std::vector<GpuArrayInfo> gp) {
+  int batch;
     for(size_t i = 0; i < gp.size(); ++i) {
       if(gp[i].name.compare(id) != 0) {
         continue;
@@ -259,7 +278,49 @@ namespace blaskernels {
           isl::map::from_domain_and_range(extent, extent);
         isl::pw_aff min = allPoints.dim_min(0);
         isl::pw_aff max = allPoints.dim_max(0);
+        isl::val min_val;
+        isl::val max_val;
 
+        min.foreach_piece([&](isl::set s, isl::aff aff) -> void {
+	    min_val = aff.get_constant_val();
+	  });
+        max.foreach_piece([&](isl::set s, isl::aff aff) -> void {
+	    max_val = aff.get_constant_val();
+	  });
+
+
+        max_val = max_val.sub(min_val);
+      
+        batch  = atoi(max_val.to_str().c_str());
+
+      }
+    }
+
+    return batch;
+  }
+
+
+  int getRowNumber(std::string id, std::vector<GpuArrayInfo> gp, int batch) {
+    int rows;
+    for(size_t i = 0; i < gp.size(); ++i) {
+      if(gp[i].name.compare(id) != 0) {
+        continue;
+      }
+      else {
+ 
+        isl::set extent = gp[i].extent;
+     
+        auto allPoints =
+          isl::map::from_domain_and_range(extent, extent);
+          isl::pw_aff min, max;
+          if (batch != -1) {
+         min = allPoints.dim_min(1);
+        max = allPoints.dim_max(1);
+          } else {
+            min = allPoints.dim_min(0);
+            max = allPoints.dim_max(0);
+          }
+        
         isl::val min_val;
         isl::val max_val;
 
@@ -279,7 +340,7 @@ namespace blaskernels {
   }
 
   int
-  getColumnNumber(std::string id, std::vector<GpuArrayInfo> gp) {
+  getColumnNumber(std::string id, std::vector<GpuArrayInfo> gp, int batch) {
   
     int column;
  
@@ -293,9 +354,14 @@ namespace blaskernels {
        
         auto allPoints =
           isl::map::from_domain_and_range(extent, extent);
-        isl::pw_aff min = allPoints.dim_min(1);
-        isl::pw_aff max = allPoints.dim_max(1);
-
+                 isl::pw_aff min, max;
+          if (batch != -1) {
+         min = allPoints.dim_min(2);
+        max = allPoints.dim_max(2);
+          } else {
+            min = allPoints.dim_min(1);
+            max = allPoints.dim_max(1);
+          }
         isl::val min_val;
         isl::val max_val;
 
@@ -316,8 +382,8 @@ namespace blaskernels {
 
 
   int 
-  getLeadingDimension(std::string id, std::vector<GpuArrayInfo> gp) {
-    return getRowNumber(id, gp);
+  getLeadingDimension(std::string id, std::vector<GpuArrayInfo> gp, int batch) {
+    return getRowNumber(id, gp, batch);
   }
 
 
@@ -408,13 +474,13 @@ namespace blaskernels {
     auto leaf = before_leaf.child(0);
     auto before_leaf_sched = before_leaf.get_prefix_schedule_union_map();
     auto sched = before_leaf_sched.intersect_domain(leaf.get_domain());
-    isl::map _readFromC = findAccess(array_infos, i, j, sched).first;
-    isl::map _A = findAccess(array_infos, i, k, sched).first;
+    isl::map _readFromC = findAccess(array_infos, i, j, sched, batch).first;
+    isl::map _A = findAccess(array_infos, i, k, sched, batch).first;
     isl::map _B;
     if (isTranspose == true) {
-      _B = findAccess(array_infos, j, k, sched).first;
+      _B = findAccess(array_infos, j, k, sched, batch).first;
     } else {
-      _B = findAccess(array_infos, k, j, sched).first;
+      _B = findAccess(array_infos, k, j, sched, batch).first;
     }
     ReadFromC = getAccessName(_readFromC);
     A = getAccessName(_A);
@@ -422,7 +488,6 @@ namespace blaskernels {
     if (isTranspose == true) {
       transb = "CUBLAS_OP_T";
     }
-
   }
 
   std::string BlasKernels::allocateDeviceArrays(int tab) {
@@ -453,19 +518,29 @@ namespace blaskernels {
       } 
       else {
 	result += createIndent(tab) + "cublasStat = cublasSetMatrix(";
-	result += conversion::to_string(getBounds(array_infos[i])[0]);
+  
+  int _i, _j;
+  if (batch == -1) {
+    _i = 0;
+    _j = 1;
+  } else {
+    _i = 1; 
+    _j = 2;
+  }
+
+	result += conversion::to_string(getBounds(array_infos[i])[_i]);
 	result += ", ";
-	result += conversion::to_string(getBounds(array_infos[i])[1]);
+	result += conversion::to_string(getBounds(array_infos[i])[_j]);
 	result += ", ";
 	result += "sizeof(*" + array_infos[i].name + ")";
 	result += ", ";
 	result += array_infos[i].name;
 	result += ", ";
-	result += conversion::to_string(getBounds(array_infos[i])[0]);
+	result += conversion::to_string(getBounds(array_infos[i])[_i]);
 	result += ", ";
 	result += "dev_" + array_infos[i].name;
 	result += ", ";
-	result += conversion::to_string(getBounds(array_infos[i])[0]) + ");\n";
+	result += conversion::to_string(getBounds(array_infos[i])[_i]) + ");\n";
       }
     }
     return result;
@@ -506,19 +581,28 @@ namespace blaskernels {
     for(size_t i = 0; i < array_infos.size(); ++i) {
       if(array_infos[i].name.compare(write_var) == 0) {
 	result += createIndent(tab) + "cublasStat = cublasGetMatrix(";
-	result += conversion::to_string(getBounds(array_infos[i])[0]);
+
+    int _i, _j;
+  if (batch == -1) {
+    _i = 0;
+    _j = 1;
+  } else {
+    _i = 1; 
+    _j = 2;
+  }
+	result += conversion::to_string(getBounds(array_infos[i])[_i]);
 	result += ", ";
-	result += conversion::to_string(getBounds(array_infos[i])[1]);
+	result += conversion::to_string(getBounds(array_infos[i])[_j]);
 	result += ", ";
 	result += "sizeof(*" + array_infos[i].name + ")";
 	result += ", ";
 	result += "dev_" + array_infos[i].name;
 	result += ", ";
-	result += conversion::to_string(getBounds(array_infos[i])[0]);
+	result += conversion::to_string(getBounds(array_infos[i])[_i]);
 	result += ", ";
 	result += array_infos[i].name;
 	result += ", ";
-	result += conversion::to_string(getBounds(array_infos[i])[0]) + ");\n";
+	result += conversion::to_string(getBounds(array_infos[i])[_j]) + ");\n";
       }
     }
     return result;
@@ -527,12 +611,12 @@ namespace blaskernels {
   
   std::string Gemm::insertCallToCUBLAS(std::string c) {
     std::string fCall;
-    m = conversion::to_string(getRowNumber(A, array_infos));
-    n = conversion::to_string(getColumnNumber(B, array_infos));
-    k_ = conversion::to_string(getRowNumber(B, array_infos));
-    lda = conversion::to_string(getLeadingDimension(A, array_infos));
-    ldb = conversion::to_string(getLeadingDimension(B, array_infos));
-    ldc = conversion::to_string(getLeadingDimension(ReadFromC, array_infos));
+    m = conversion::to_string(getRowNumber(A, array_infos, batch));
+    n = conversion::to_string(getColumnNumber(B, array_infos, batch));
+    k_ = conversion::to_string(getRowNumber(B, array_infos, batch));
+    lda = conversion::to_string(getLeadingDimension(A, array_infos, batch));
+    ldb = conversion::to_string(getLeadingDimension(B, array_infos, batch));
+    ldc = conversion::to_string(getLeadingDimension(ReadFromC, array_infos, batch));
 
     std::string variant = "";
     if (batch != -1) {
@@ -556,7 +640,7 @@ namespace blaskernels {
     fCall += C + ", ";
     fCall += ldc;
     if (batch != -1) 
-      fCall += conversion::to_string(getLeadingDimension(ReadFromC, array_infos));
+      fCall += ", " + conversion::to_string(getBatchNumber(ReadFromC, array_infos));
     fCall += ");\n";
     
     std::string startK = "kernel_start";

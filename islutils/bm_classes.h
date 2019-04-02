@@ -65,6 +65,7 @@ namespace blaskernels {
 
     // Kernel id derived from enumeration
     int type;
+        int batch = -1;
     std::string data_type = "D";
     // The matching schedule node
     isl::schedule_node schedule_node;
@@ -110,7 +111,7 @@ namespace blaskernels {
     int j = -1;
     int k = -1;
     // For batched Gemm
-    int batch = -1;
+
 
     void fillIndexInfos(int _i, int _j, int _k, int _batch, std::string _C);
     void fill(bool isTranspose);

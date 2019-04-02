@@ -380,16 +380,16 @@ namespace blasmatchers {
 	     isl::union_map writes) {
   
     std::vector<blaskernels::BlasKernels*> k;
-    // if (findGemm(ctx, scop, reads, writes).first == true) {
-    //   k.push_back(findGemm(ctx, scop, reads, writes).second);
-    // }
+    if (findGemm(ctx, scop, reads, writes).first == true) {
+      k.push_back(findGemm(ctx, scop, reads, writes).second);
+    }
 
     if (findTransposeGemm(ctx, scop, reads, writes).first == true) {
       k.push_back(findTransposeGemm(ctx, scop, reads, writes).second);
     }
-    // if (findBatchGemm(ctx, scop, reads, writes).first == true) {
-    //   k.push_back(findBatchGemm(ctx, scop, reads, writes).second);
-    // }
+    if (findBatchGemm(ctx, scop, reads, writes).first == true) {
+      k.push_back(findBatchGemm(ctx, scop, reads, writes).second);
+    }
     // if (findAnyDotProduct(ctx, scop, reads, writes).first == true) {
     //   k.push_back(findAnyDotProduct(ctx, scop, reads, writes).second);
     // }
@@ -586,9 +586,12 @@ namespace blasmatchers {
        
 	  isBatchGemm.second->setType(blaskernels::transposeGemm);
 	  isBatchGemm.second->setScheduleNode(newnode);
+   
 	  isBatchGemm.second->array_infos = collectArrayInfo(scop);
+   
 	  isBatchGemm.second->fill(false); // has transposed B.
 	  isBatchGemm.second->setDataType();
+ 
         }
       }
     }
