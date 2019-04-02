@@ -92,9 +92,7 @@ namespace blaskernels {
   public:
     std::string A = "null";
     std::string B = "null";
-    std::string C = "null";
     std::string ReadFromC = "null";
-    std::string WriteToC = "null";
 
     std::string transa = "CUBLAS_OP_N";
     std::string transb = "CUBLAS_OP_N";
@@ -110,7 +108,6 @@ namespace blaskernels {
     int i = -1;
     int j = -1;
     int k = -1;
-    // For batched Gemm
 
 
     void fillIndexInfos(int _i, int _j, int _k, int _batch, std::string _C);

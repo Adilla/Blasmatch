@@ -475,6 +475,7 @@ int getBatchNumber(std::string id, std::vector<GpuArrayInfo> gp) {
     auto before_leaf_sched = before_leaf.get_prefix_schedule_union_map();
     auto sched = before_leaf_sched.intersect_domain(leaf.get_domain());
     isl::map _readFromC = findAccess(array_infos, i, j, sched, batch).first;
+    
     isl::map _A = findAccess(array_infos, i, k, sched, batch).first;
     isl::map _B;
     if (isTranspose == true) {
@@ -637,7 +638,7 @@ int getBatchNumber(std::string id, std::vector<GpuArrayInfo> gp) {
     fCall += B + ", ";
     fCall += ldb + ", ";
     fCall += beta + ", ";
-    fCall += C + ", ";
+    fCall += write_var + ", ";
     fCall += ldc;
     if (batch != -1) 
       fCall += ", " + conversion::to_string(getBatchNumber(ReadFromC, array_infos));
